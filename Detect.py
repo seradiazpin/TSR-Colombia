@@ -81,7 +81,6 @@ class Detector:
 
         yuv = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
 
-
         #YUV
         #mask1 = cv2.inRange(yuv[:,:,2], self.lower_red, self.upper_red)
 
@@ -90,7 +89,7 @@ class Detector:
 
 
 
-        mask = cv2.dilate(mask1, None, iterations=3)
+        mask = cv2.dilate(mask1, None, iterations=4)
         mask = cv2.erode(mask, None, iterations=4)
         mask = cv2.dilate(mask, None, iterations=7)
 
@@ -124,9 +123,9 @@ class Detector:
 
                 cx1, cx2, cy1, cy2 = self.validate_borders(img, cx1, cx2, cy1, cy2)
 
-                sign = cv2.bitwise_and(img[cy1:cy2,cx1:cx2],img[cy1:cy2,cx1:cx2],mask = mask1[cy1:cy2,cx1:cx2])
-
-                th = mask1[cy1:cy2,cx1:cx2]
+                #sign = cv2.bitwise_and(img[cy1:cy2,cx1:cx2],img[cy1:cy2,cx1:cx2],mask = mask1[cy1:cy2,cx1:cx2])
+                sign = img[cy1:cy2, cx1:cx2]
+                th = mask[cy1:cy2,cx1:cx2]
 
         if self.show:
             print("detect")
@@ -242,7 +241,7 @@ def test(one= True):
     imgs = []
     if one:
         print("Detecting:")
-        file = "./Data/Preventivas/STC-PV-8.jpg"
+        file = "./Data/Preventivas/STC-PV-13.jpg"
         sign = cv2.imread(file,1)
         d = Detector(sign,show=True, debug=True)
         s, th = d.detect()
@@ -266,3 +265,5 @@ def test(one= True):
 
         cv2.waitKey(0)
         cv2.destroyAllWindows()
+
+test(False)

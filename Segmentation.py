@@ -49,17 +49,38 @@ class Segmentor:
         if draw: return cv2.drawKeypoints(img, self.kp,None, color=(255,0,0))
 
 
-sign = cv2.imread("./Data/Preventivas/STC-PV-33.jpg",1)
+def test(one= True):
+    total = 0
+    imgs = []
+    if one:
+        print("Detecting:")
+        file = "./Data/Preventivas/STC-PV-8.jpg"
+        sign = cv2.imread(file,1)
+        d = Detector(sign,show=True, debug=True)
+        s, th = d.detect()
+    else:
+        for i in range(1,47):
+            file = "./Data/Preventivas/STC-PV-"+str(i)+".jpg"
+            #file = "./Data/Reglamentarias/STC-RG-" + str(i) + ".jpg"
+            #file = "./Data/Mixtas/STC-MX-"+ str(i) +".jpg"
+            sign = cv2.imread(file,1)
+            d = Detector(sign,show=False)
+            s,th = d.detect()
+            if s is not None :
+                total +=1
+                imgs.append((i, s,th))
 
-d = Detector(sign,show=True)
-s,t = d.detect()
-seg = Segmentor(s,t)
-seg.watershed()
-kp = seg.keypoints(s,True)
+        print ("Detected:", str(total))
 
-cv2.imshow("IMG", s)
-cv2.imshow("SEG", seg.img)
-cv2.imshow("KP", kp)
+        for i in range(1,len(imgs)-1):
+            seg = Segmentor(imgs[i][1], imgs[i][2])
+            seg.watershed()
+            kp = seg.keypoints(imgs[i][1], True)
+            res = np.concatenate((imgs[i][1], seg.img,kp), axis=1)
+            cv2.imshow("img"+str(imgs[i][0]), res)
+            print (str(imgs[i][0]))
 
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
+test(False)
