@@ -15,7 +15,7 @@ class Detector:
         self.upper_red = np.array([240])
 
         self.lower_yellow = (30,72,130)
-        self.upper_yellow = (100,100,180)
+        self.upper_yellow = (100,110,180)
 
 
 
@@ -82,15 +82,14 @@ class Detector:
         yuv = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
 
         #YUV
-        #mask1 = cv2.inRange(yuv[:,:,2], self.lower_red, self.upper_red)
+        mask1 = cv2.inRange(yuv[:,:,2], self.lower_red, self.upper_red)
 
-        mask1 = cv2.inRange(yuv, self.lower_yellow, self.upper_yellow)
-
-
+        #mask1 = cv2.inRange(yuv, self.lower_yellow, self.upper_yellow)
 
 
-        mask = cv2.dilate(mask1, None, iterations=4)
-        mask = cv2.erode(mask, None, iterations=4)
+
+
+        mask = cv2.erode(mask1, None, iterations=1)
         mask = cv2.dilate(mask, None, iterations=7)
 
         cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,
@@ -138,7 +137,61 @@ class Detector:
             cv2.destroyAllWindows()
 
         return sign, th
+    def video_test(self):
+        img = imutils.resize(self.img, width=600)
+        draw = np.zeros_like(img)
 
+        yuv = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
+
+        # YUV
+        #mask1 = cv2.inRange(yuv[:, :, 2], self.lower_red, self.upper_red)
+        mask1 = cv2.inRange(yuv, self.lower_yellow, self.upper_yellow)
+
+
+
+
+        mask = cv2.erode(mask1, None, iterations=1)
+        mask = cv2.dilate(mask, None, iterations=7)
+
+        cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,
+                                cv2.CHAIN_APPROX_SIMPLE)[-2]
+        center = None
+        th = None
+        sign = None
+        if len(cnts) > 0:
+            # find the largest contour in the mask, then use
+            # it to compute the minimum enclosing circle and
+            # centroid
+            #c = max(cnts, key=cv2.contourArea)
+            #((x, y), radius) = cv2.minEnclosingCircle(c)
+            for i in cnts:
+                ((x, y), radius) = cv2.minEnclosingCircle(i)
+                M = cv2.moments(i)
+                center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+
+                # only proceed if the radius meets a minimum size
+                if radius > 10:
+                    # draw the circle and centroid on the frame,
+                    # then update the list of tracked points
+                    cv2.circle(self.img, (int(x), int(y)), int(radius),
+                               (0, 255, 255), 2)
+                    cv2.circle(self.img, center, 5, (0, 0, 255), -1)
+
+                if radius > 10:
+                    cx1 = int(center[0] - radius)
+                    cx2 = int(center[0] + radius)
+                    cy1 = int(center[1] - radius)
+                    cy2 = int(center[1] + radius)
+
+                    cx1, cx2, cy1, cy2 = self.validate_borders(img, cx1, cx2, cy1, cy2)
+
+                    # sign = cv2.bitwise_and(img[cy1:cy2,cx1:cx2],img[cy1:cy2,cx1:cx2],mask = mask1[cy1:cy2,cx1:cx2])
+                    sign = img[cy1:cy2, cx1:cx2]
+                    th = mask[cy1:cy2, cx1:cx2]
+        cv2.imshow("IMG YUV", yuv)
+        if mask is not None: cv2.imshow("Erode", mask)
+        cv2.imshow("YUV MASK", mask1)
+        return sign, th
     def detect_test(self):
         self.init_bars()
         pts = deque(maxlen=64)
@@ -241,7 +294,7 @@ def test(one= True):
     imgs = []
     if one:
         print("Detecting:")
-        file = "./Data/Preventivas/STC-PV-13.jpg"
+        file = "./Data/Preventivas/STC-PV-7.jpg"
         sign = cv2.imread(file,1)
         d = Detector(sign,show=True, debug=True)
         s, th = d.detect()
@@ -256,7 +309,9 @@ def test(one= True):
             if s is not None :
                 total +=1
                 imgs.append((i, s))
-
+                print ("1")
+            else:
+                print ("0")
         print ("Detected:", str(total))
 
         for i in range(1,len(imgs)-1):
@@ -266,4 +321,4 @@ def test(one= True):
         cv2.waitKey(0)
         cv2.destroyAllWindows()
 
-test(False)
+#test(False)
