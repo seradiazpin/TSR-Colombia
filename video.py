@@ -2,8 +2,9 @@ import numpy as np
 import cv2
 import imutils
 from Detect import Detector
+from Segmentation import Segmentor
 cap = cv2.VideoCapture('vid.mp4')
-
+debug = True
 while(True):
     # Capture frame-by-frame
     ret, frame = cap.read()
@@ -13,8 +14,15 @@ while(True):
     d = Detector(frame, show=False)
     s, th = d.video_test()
     if s is not None:
+        seg = Segmentor(s, th)
+        seg.watershed()
+        kp = seg.keypoints(s, True)
+        res = np.concatenate((s, seg.img, seg.kpimg), axis=1)
         cv2.imshow("img",s)
-    cv2.imshow("vid", d.img)
+        cv2.imshow("res", res)
+
+    cv2.imshow("vid", cv2.bitwise_or(d.img,d.draw))
+
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 

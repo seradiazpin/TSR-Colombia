@@ -11,9 +11,10 @@ def on_mouse_click (event, x, y, flags, frame):
 
 def main():
 
-    sign = cv2.imread("./Data/Preventivas/STC-PV-7.jpg", 1)
-    #sign = cv2.imread("./Data/Mixtas/STC-MX-2.jpg", 1)
+    #sign = cv2.imread("./Data/Preventivas/STC-PV-2.jpg", 1)
+    sign = cv2.imread("./Data/Mixtas/STC-MX-2.jpg", 1)
     sign = imutils.resize(sign, width=1000)
+
     while True:
         frame = sign
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2YUV)

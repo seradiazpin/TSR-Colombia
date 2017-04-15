@@ -14,7 +14,6 @@ class Segmentor:
     def watershed(self):
         kernel = np.ones((3,3),np.uint8)
         opening = cv2.morphologyEx(self.th,cv2.MORPH_OPEN,kernel, iterations = 0)
-        cv2.imshow("IsMG", opening)
         # sure background area
         sure_bg = cv2.dilate(self.th,kernel,iterations=0)
 
@@ -46,7 +45,7 @@ class Segmentor:
 
     def keypoints(self,img,draw=False):
         self.kp = self.fast.detect(img, None)
-        if draw: return cv2.drawKeypoints(img, self.kp,None, color=(255,0,0))
+        self.kpimg = cv2.drawKeypoints(img, self.kp,None, color=(255,0,0))
 
 
 def test(one= True):
@@ -76,11 +75,11 @@ def test(one= True):
             seg = Segmentor(imgs[i][1], imgs[i][2])
             seg.watershed()
             kp = seg.keypoints(imgs[i][1], True)
-            res = np.concatenate((imgs[i][1], seg.img,kp), axis=1)
+            res = np.concatenate((imgs[i][1], seg.img, kp), axis=1)
             cv2.imshow("img"+str(imgs[i][0]), res)
             print (str(imgs[i][0]))
 
         cv2.waitKey(0)
         cv2.destroyAllWindows()
 
-test(False)
+#test(False)
