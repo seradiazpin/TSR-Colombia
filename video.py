@@ -3,7 +3,7 @@ import cv2
 import imutils
 from Detect import Detector
 from Segmentation import Segmentor
-cap = cv2.VideoCapture('vid.mp4')
+cap = cv2.VideoCapture('vid2.mp4')
 debug = True
 while(True):
     # Capture frame-by-frame
@@ -11,13 +11,13 @@ while(True):
     frame = imutils.resize(frame, width=600)
 
     # Our operations on the frame come here
-    d = Detector(frame, show=False)
+    d = Detector(frame, show=False, half=True)
     s, th = d.video_test()
     if s is not None:
         seg = Segmentor(s, th)
         seg.watershed()
-        kp = seg.keypoints(s, True)
-        res = np.concatenate((s, seg.img, seg.kpimg), axis=1)
+        seg.keypoints()
+        res = np.concatenate((seg.origi, seg.th, seg.img, seg.kpimg), axis=1)
         cv2.imshow("img",s)
         cv2.imshow("res", res)
 
