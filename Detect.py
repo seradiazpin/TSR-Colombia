@@ -16,6 +16,7 @@ class Detector:
         # convert the YUV image back to RGB format
         img = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2BGR)
         """
+
         if not half:
             self.img = imutils.resize(img, width=600)
         else:
@@ -25,12 +26,20 @@ class Detector:
         self.debug = debug
 
         # YUV
-        self.lower_red = np.array([160])
-        self.upper_red = np.array([255])
+        self.lower_redY = np.array([160])
+        self.upper_redY = np.array([255])
 
+        self.lower_red = (150, 30, 80)
+        self.upper_red = (200, 200, 255)
 
-        self.lower_yellow = (30, 72, 140)
-        self.upper_yellow = (100,110,165)
+        # self.lower_yellow = (30, 72, 140)
+        # self.upper_yellow = (100,110,165)
+
+        self.lower_yellow = (0, 50, 200)
+        self.upper_yellow = (30,150,255)
+
+        # self.lower_yellow = np.array([160])
+        # self.upper_yellow = np.array([255])
 
     def validate_borders(self, cx1, cx2, cy1, cy2):
         if cx1 >= self.img.shape[1]:
@@ -61,14 +70,17 @@ class Detector:
 
     def detect(self):
         yuv = cv2.cvtColor(self.img, cv2.COLOR_BGR2YUV)
+        hsi = cv2.cvtColor(self.img, cv2.COLOR_BGR2HLS)
 
         # YUV
-        # mask1 = cv2.inRange(yuv[:,:,2], self.lower_red, self.upper_red)
-
-        mask1 = cv2.inRange(yuv[:,:,2], self.lower_red, self.upper_red) + cv2.inRange(yuv, self.lower_yellow, self.upper_yellow)
-
-        mask = cv2.erode(mask1, None, iterations=1)
-        mask = cv2.dilate(mask, None, iterations=7)
+        # mask1 = cv2.inRange(yuv[:,:,2], self.lower_red, self.upper_red) cv2.inRange(hsi, self.lower_red, self.upper_red)# +
+        kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
+        mask1 = cv2.inRange(hsi, self.lower_red, self.upper_red) + cv2.inRange(hsi, self.lower_yellow,
+                                                                               self.upper_yellow)
+        cv2.bitwise_and(mask1, mask1, mask=cv2.inRange(yuv[:, :, 2], self.lower_redY, self.upper_redY))
+        #mask1 = cv2.inRange(yuv, self.lower_red, self.upper_red)
+        mask = cv2.erode(mask1, kernel, iterations=1)
+        mask = cv2.dilate(mask, kernel, iterations=5)
 
         cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,
                                 cv2.CHAIN_APPROX_SIMPLE)[-2]
@@ -115,13 +127,65 @@ class Detector:
 
         return sign, th
 
+    def multiple_detect(self):
+        yuv = cv2.cvtColor(self.img, cv2.COLOR_BGR2YUV)
+        hsi = cv2.cvtColor(self.img, cv2.COLOR_BGR2HLS)
+
+        # YUV
+        # mask1 = cv2.inRange(yuv[:,:,2], self.lower_red, self.upper_red) cv2.inRange(hsi, self.lower_red, self.upper_red)# +
+        kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
+        mask1 = cv2.inRange(hsi, self.lower_red, self.upper_red) + cv2.inRange(hsi, self.lower_yellow,
+                                                                               self.upper_yellow)
+        cv2.bitwise_and(mask1, mask1, mask=cv2.inRange(yuv[:, :, 2], self.lower_redY, self.upper_redY))
+        #mask1 = cv2.inRange(yuv, self.lower_red, self.upper_red)
+        mask = cv2.erode(mask1, kernel, iterations=1)
+        mask = cv2.dilate(mask, kernel, iterations=5)
+
+        cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,
+                                cv2.CHAIN_APPROX_SIMPLE)[-2]
+        center = None
+        th = []
+        sign = []
+        if len(cnts) > 0:
+            for i in cnts:
+                ((x, y), radius) = cv2.minEnclosingCircle(i)
+                M = cv2.moments(i)
+                center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+
+                # only proceed if the radius meets a minimum size
+                if 10 < radius < 50:
+                    # draw the circle and centroid on the frame,
+                    # then update the list of tracked points
+                    cv2.circle(self.draw, (int(x), int(y)), int(radius),
+                               (0, 255, 255), 2)
+                    cv2.circle(self.draw, center, 5, (0, 0, 255), -1)
+                    cv2.putText(self.draw, str(radius),center,cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 2)
+
+                if 10 < radius < 50:
+                    cx1 = int(center[0] - radius)
+                    cx2 = int(center[0] + radius)
+                    cy1 = int(center[1] - radius)
+                    cy2 = int(center[1] + radius)
+
+                    cx1, cx2, cy1, cy2 = self.validate_borders(cx1, cx2, cy1, cy2)
+                    # sign = cv2.bitwise_and(self.img[cy1:cy2,cx1:cx2],self.img[cy1:cy2,cx1:cx2],mask = mask[cy1:cy2,cx1:cx2])
+                    sign.append(self.img[cy1:cy2, cx1:cx2])
+                    th.append(mask[cy1:cy2, cx1:cx2])
+        cv2.imshow("mask", mask)
+        cv2.imshow("mask1", mask1)
+        return sign, th
+
     def video_test(self):
         yuv = cv2.cvtColor(self.img, cv2.COLOR_BGR2YUV)
+        hsi = cv2.cvtColor(self.img, cv2.COLOR_BGR2HLS)
         # YUV
-        mask1 = cv2.inRange(yuv[:,:,2], self.lower_red, self.upper_red) + cv2.inRange(yuv, self.lower_yellow, self.upper_yellow)
+        # mask1 = cv2.inRange(yuv[:,:,2], self.lower_red, self.upper_red)
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3))
+        mask1 = cv2.inRange(hsi, self.lower_red, self.upper_red)+ cv2.inRange(hsi, self.lower_yellow, self.upper_yellow)
+        cv2.bitwise_and(mask1, mask1, mask=cv2.inRange(yuv[:,:,2], self.lower_redY, self.upper_redY))
 
-        mask = cv2.erode(mask1, None, iterations=1)
-        mask = cv2.dilate(mask, None, iterations=7)
+        mask = cv2.erode(mask1, kernel, iterations=1)
+        mask = cv2.dilate(mask, kernel, iterations=5)
         cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,
                                 cv2.CHAIN_APPROX_SIMPLE)[-2]
         center = None
@@ -152,9 +216,10 @@ class Detector:
                     # sign = cv2.bitwise_and(self.img[cy1:cy2,cx1:cx2],self.img[cy1:cy2,cx1:cx2],mask = mask[cy1:cy2,cx1:cx2])
                     sign = self.img[cy1:cy2, cx1:cx2]
                     th = mask[cy1:cy2, cx1:cx2]
-        cv2.imshow("IMG YUV", yuv)
-        if mask is not None: cv2.imshow("MASK MORP", mask)
-        cv2.imshow("MASK YUV", mask1)
+        if self.debug:
+            cv2.imshow("IMG YUV", yuv)
+            if mask is not None: cv2.imshow("MASK MORP", mask)
+            cv2.imshow("MASK YUV", mask1)
         return sign, th
 
     def detect_test(self):
@@ -254,38 +319,65 @@ class Detector:
                 break
 
 
-def test(one= True):
+def test(one=True, mul=False):
     total = 0
     imgs = []
-    if one:
-        print("Detecting:")
-        # img_file = "./Data/Preventivas/STC-PV-3.jpg"
-        img_file = "./Data/Mixtas/STC-MX-2.jpg"
-        sign = cv2.imread(img_file, 1)
-        d = Detector(sign, show=True, debug=True)
-        d.detect()
-    else:
-        for i in range(1,47):
-            img_file = "./Data/Preventivas/STC-PV-"+str(i)+".jpg"
-            # img_file = "./Data/Reglamentarias/STC-RG-" + str(i) + ".jpg"
-            # img_file = "./Data/Mixtas/STC-MX-"+ str(i) +".jpg"
-            sign = cv2.imread(img_file,1)
-            d = Detector(sign,show=False)
-            s,th = d.detect()
-            if s is not None:
+    if not mul:
+        if one:
+            print("Detecting:")
+            img_file = "./Data/Preventivas/STC-PV-30.jpg"
+            # img_file = "./Data/Mixtas/STC-MX-30.jpg"
+            # img_file = "./Data/Reglamentarias/STC-RG-17.jpg"
+            sign = cv2.imread(img_file, 1)
+            d = Detector(sign, show=True, debug=True)
+            s,th = d.multiple_detect()
+            cv2.imshow("img",cv2.bitwise_or(d.img, d.draw))
+            for j in s:
+                cv2.imshow("img" + str(total), j)
+
                 total += 1
-                imgs.append((i, s))
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
+        else:
+            for i in range(1,35):
+                # img_file = "./Data/Preventivas/STC-PV-"+str(i)+".jpg"
+                # img_file = "./Data/Reglamentarias/STC-RG-" + str(i) + ".jpg"
+                img_file = "./Data/Mixtas/STC-MX-"+ str(i) +".jpg"
+                sign = cv2.imread(img_file,1)
+                d = Detector(sign,show=False)
+                s,th = d.detect()
+                if s is not None:
+                    total += 1
+                    imgs.append((i, s))
+                    print ("1")
+                else:
+                    print ("0")
+            print ("Detected:", str(total))
+
+            for i in range(1,len(imgs)-1):
+                cv2.imshow("img"+str(imgs[i][0]), imgs[i][1])
+                print (str(imgs[i][0]))
+
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
+    else:
+        for i in range(1, 45):
+            img_file = "./Data/Preventivas/STC-PV-"+str(i)+".jpg"
+            #img_file = "./Data/Reglamentarias/STC-RG-" + str(i) + ".jpg"
+            #img_file = "./Data/Mixtas/STC-MX-"+ str(i) +".jpg"
+            sign = cv2.imread(img_file, 1)
+            d = Detector(sign, show=False)
+            s, th = d.multiple_detect()
+            for j in s:
+                cv2.imshow("img" + str(total), imutils.resize(j, width=100))
+                # imgs.append((str(i)+"-"+str(total), j))
+                total += 1
                 print ("1")
             else:
                 print ("0")
         print ("Detected:", str(total))
 
-        for i in range(1,len(imgs)-1):
-            cv2.imshow("img"+str(imgs[i][0]), imgs[i][1])
-            print (str(imgs[i][0]))
-
         cv2.waitKey(0)
         cv2.destroyAllWindows()
-
 if __name__ == "__main__":
-    test(not False)
+    test(not False, not True)
