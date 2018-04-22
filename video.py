@@ -2,9 +2,9 @@ import numpy as np
 import cv2
 import imutils
 from Detect import Detector
-from Segmentation import Segmentor
+from Segmentation import Segmenter
 from Training import Training
-cap = cv2.VideoCapture("./video/vid2-2.mp4")
+cap = cv2.VideoCapture("./video/vid2.mp4")
 #cap = cv2.VideoCapture("./video/vid2-3.mp4")
 #cap = cv2.VideoCapture("./video/vid2-4.mp4")
 #cap = cv2.VideoCapture("./video/vid3.mp4")
@@ -27,7 +27,7 @@ while(True):
     d = Detector(frame, show=False, debug=False)
     s, th = d.video_test()
     if s is not None:
-        seg = Segmentor(s)
+        seg = Segmenter(s)
         seg.watershed()
         seg.keypoints()
         if len(seg.kp) > 15:

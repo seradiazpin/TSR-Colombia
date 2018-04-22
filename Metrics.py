@@ -3,7 +3,7 @@ import cv2
 import imutils
 from imutils import paths
 from Detect import Detector
-from Segmentation import Segmentor
+from Segmentation import Segmenter
 from Training import Training
 
 
@@ -65,7 +65,7 @@ for i in range(len(trainig_paths)):
         cv2.putText(classifier, "SVM-Linear", (0, int(sign.shape[1] / 2) - 20),
                     cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 2)
 
-        seg = Segmentor(sign)
+        seg = Segmenter(sign)
         seg.watershed()
         seg.keypoints()
         if len(seg.kp) > 15:
@@ -90,6 +90,6 @@ cv2.destroyAllWindows()
 print ("ansDATA", ansdata)
 print ("Deduction", deducNN)
 
-tra.confucion(ansdata,deducSVM,ans,"SVM")
-tra.confucion(ansdata,deducNN,ans,"NN")
-tra.confucion(ansdata,deducNNNOFIT,ans,"NN-noreduc")
+tra.confusion(ansdata, deducSVM, ans, "SVM")
+tra.confusion(ansdata, deducNN, ans, "NN")
+tra.confusion(ansdata, deducNNNOFIT, ans, "NN-noreduc")

@@ -6,24 +6,22 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.externals import joblib
 import cv2
 from imutils import paths
-from Segmentation import Segmentor
+from Segmentation import Segmenter
 import itertools
 from sklearn.metrics import confusion_matrix
 
 
-"""
-    Training class
-    Trainig the clasificator method
-"""
-
-
 class Training:
-    def __init__(self, sings = None, folders= None, load = False):
-        if sings != None and folders != None:
+    """
+        Trainig the clasificator method
+    """
+
+    def __init__(self, sings=None, folders=None, load=False):
+        if sings is not None and folders is not None:
             self.signs = sings
-            self.trainig_paths = []
+            self.training_paths = []
             for i in range(len(folders)):
-                self.trainig_paths.append("./training/" + folders[i] + "/")
+                self.training_paths.append("./training/" + folders[i] + "/")
             self.train_lda_x = []
             self.train_lda_y = []
             self.LDA = None
@@ -34,8 +32,8 @@ class Training:
             if load:
                 self.load_config()
         else:
-            print (
-            "Incluir arreglo de clases y arreglo de datos de entrenamiento\n ['clase1','clase2'],['./folder/folderClass1', './folder/folderClass2']")
+            print ("Incluir arreglo de clases y arreglo de datos de entrenamiento\n ['clase1','clase2'],"
+                   "['./folder/folderClass1', './folder/folderClass2']")
 
     def save_config(self):
         print("Saving config")
@@ -57,20 +55,21 @@ class Training:
         self.NNNOFIT.fit(self.train_lda_x, self.train_lda_y)
         self.NN.fit(self.training_data, self.train_lda_y)
         print("End NN")
+
     def train_data(self):
-        for i in range(len(self.trainig_paths)):
-            for imagePath in paths.list_images(self.trainig_paths[i]):
+        for i in range(len(self.training_paths)):
+            for imagePath in paths.list_images(self.training_paths[i]):
                 print (imagePath)
                 s = cv2.imread(imagePath, 1)
-                seg = Segmentor(s)
+                seg = Segmenter(s)
                 seg.keypoints()
                 self.train_lda_x.append(seg.descriptors())
                 self.train_lda_y.append(self.signs.index(self.signs[i]))
                 res = np.concatenate((seg.origi, seg.th, seg.img, seg.kpimg), axis=1)
-                #cv2.imshow("img"+imagePath, s)
-                #cv2.imshow("res"+imagePath, res)
-        #cv2.waitKey(0)
-        #cv2.destroyAllWindows()
+                # cv2.imshow("img"+imagePath, s)
+                # cv2.imshow("res"+imagePath, res)
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
         print (self.train_lda_x)
         print (self.train_lda_y)
         self.train_lda_x = np.array(self.train_lda_x)
@@ -80,8 +79,9 @@ class Training:
 
     def draw_training(self):
         colors = ['navy', 'turquoise', 'darkorange', 'red', 'green']
-        for color, i, target_name in zip(colors, [0, 1,2,3,4], self.signs):
-            plt.scatter(self.training_data[self.train_lda_y == i, 0], self.training_data[self.train_lda_y == i, 1], alpha=.8, color=color,
+        for color, i, target_name in zip(colors, [0, 1, 2, 3, 4], self.signs):
+            plt.scatter(self.training_data[self.train_lda_y == i, 0], self.training_data[self.train_lda_y == i, 1],
+                        alpha=.8, color=color,
                         label=target_name)
         plt.legend(loc='best', shadow=False, scatterpoints=1)
         plt.title('LDA of SIGN')
@@ -120,7 +120,6 @@ class Training:
                   'LinearSVC (linear kernel)',
                   'SVC with RBF kernel',
                   'SVC with polynomial (degree 3) kernel']
-
 
         for i, clf in enumerate((svc, lin_svc, rbf_svc, poly_svc)):
             # Plot the decision boundary. For that, we will assign a color to each
@@ -179,18 +178,19 @@ class Training:
         plt.ylabel('True label')
         plt.xlabel('Predicted label')
 
-    def confucion(self,y_test,y_pred, class_names, title):
+    def confusion(self, y_test, y_pred, class_names, title):
         cnf_matrix = confusion_matrix(y_test, y_pred)
         np.set_printoptions(precision=2)
 
         # Plot non-normalized confusion matrix
         plt.figure()
         self.plot_confusion_matrix(cnf_matrix, classes=class_names,
-                              title=title+', without normalization')
+                                   title=title + ', without normalization')
         plt.figure()
         self.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
-                              title=title+' Normalized confusion matrix')
+                                   title=title + ' Normalized confusion matrix')
         plt.show()
+
 
 def test(train):
     if train:
@@ -202,8 +202,9 @@ def test(train):
         tra.train_NN()
         tra.save_config()
     else:
-        tra = Training(["PP", "30km", "Pare", "PEATONES","Giro"], ["Sign/pp", "Sign/V", "Sign/P", "Sign/peaton","Sign/pt"], True)
-        print (tra.SVM.predict([[-1.,2.]]))
+        tra = Training(["PP", "30km", "Pare", "PEATONES", "Giro"],
+                       ["Sign/pp", "Sign/V", "Sign/P", "Sign/peaton", "Sign/pt"], True)
+        print (tra.SVM.predict([[-1., 2.]]))
 
 
 if __name__ == "__main__":
